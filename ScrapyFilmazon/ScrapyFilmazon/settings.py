@@ -14,10 +14,10 @@ NEWSPIDER_MODULE = "ScrapyFilmazon.spiders"
 
 
 # Crawl responsibly by identifying yourself (and your website) on the user-agent
-#USER_AGENT = "ScrapyFilmazon (+http://www.yourdomain.com)"
+USER_AGENT = "ScrapyFilmazon (+http://www.https://filmazon.my)"
 
 # Obey robots.txt rules
-ROBOTSTXT_OBEY = True
+ROBOTSTXT_OBEY = False
 
 # Configure maximum concurrent requests performed by Scrapy (default: 16)
 #CONCURRENT_REQUESTS = 32
@@ -26,6 +26,10 @@ ROBOTSTXT_OBEY = True
 # See https://docs.scrapy.org/en/latest/topics/settings.html#download-delay
 # See also autothrottle settings and docs
 #DOWNLOAD_DELAY = 3
+
+RETRY_ENABLED = True
+RETRY_TIMES = 3  # Retry 3 times on failure'
+
 # The download delay setting will honor only one of:
 #CONCURRENT_REQUESTS_PER_DOMAIN = 16
 #CONCURRENT_REQUESTS_PER_IP = 16
@@ -89,4 +93,4 @@ ROBOTSTXT_OBEY = True
 
 # Set settings whose default value is deprecated to a future-proof value
 TWISTED_REACTOR = "twisted.internet.asyncioreactor.AsyncioSelectorReactor"
-FEED_EXPORT_ENCODING = "utf-8"
+FEED_EXPORT_ENCODING = "utf-8-sig"

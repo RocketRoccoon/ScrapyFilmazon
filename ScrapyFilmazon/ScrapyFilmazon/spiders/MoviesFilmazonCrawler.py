@@ -4,7 +4,7 @@ import re
 
 class ScrapyfilmazoncrawlerSpider(scrapy.Spider):
     name = "MoviesFilmazonCrawler"
-    allowed_domains = ["filmazon.my"]
+    # allowed_domains = ["filmazon.my"]
     start_urls = ["https://filmazon.my/movie?sort=created_at_asc"]
     custom_settings = {
         # 'LOG_FILE': 'Filmazon1.log',
@@ -17,7 +17,6 @@ class ScrapyfilmazoncrawlerSpider(scrapy.Spider):
 
         for item in items:
             link = item.xpath("./div/div/h2/a/@href").get()
-            # link = response.urljoin(link)
             yield scrapy.Request(url=link, callback=self.parse_item)
 
         for i in range(2, 3):
@@ -25,8 +24,8 @@ class ScrapyfilmazoncrawlerSpider(scrapy.Spider):
             yield scrapy.Request(url=next_page, callback=self.parse)
 
     def parse_item(self, response):
-        yield {
-            'name': re.search(r'([A-Za-z\s:]+)\s\d{4}', response.xpath('//h1[@class="title"]/text()').get()).group(1).strip(),
+        movie_data= {
+            'name': response.url.split('/')[-1],
             'genre': (lambda genres: ", ".join(genres) if genres else "No info")(response.xpath('//i[contains(@class, "fa-light fa-masks-theater")]/../following-sibling::div/a/text()').getall()),
             'release_year': (lambda : response.xpath('//i[contains(@class, "fa-light fa-calendar-day")]/../following-sibling::div/a/text()').get() or "no info")(),
             'duration': (lambda : re.findall(r'\d+', response.xpath('//i[contains(@class, "fa-light fa-alarm-clock")]/../following-sibling::div/a/text()').get())[0] if response.xpath('//i[contains(@class, "fa-light fa-alarm-clock")]/../following-sibling::div/a/text()').get() else "no info")(),
@@ -41,10 +40,36 @@ class ScrapyfilmazoncrawlerSpider(scrapy.Spider):
             'star3': (lambda : response.xpath('//i[contains(@class, "fa-light fa-users")]/../following-sibling::div/a[3]/text()').get() or "no info")(),
             'country': (lambda countries: ", ".join(countries) if countries else "No info")(response.xpath('//i[contains(@class, "fa-light fa-earth-americas")]/../following-sibling::div/a/text()').getall()),
             'language': (lambda languages: ", ".join(languages) if languages else "No info")(response.xpath('//i[contains(@class, "fa-light fa-globe")]/../following-sibling::div/a/text()').getall()),
-            'download_counts': (lambda lst: sum(map(int, lst)) if lst else "no info")(response.xpath('//span[contains(@class, "download-number")]/text()').getall()),
             'number_of_comments': (lambda: response.xpath("//div[contains(@class, 'title')]/span[contains(@class,'count')]/text()").get() or "no info")(),
             'description': (lambda: response.xpath("//p[contains(@class, 'post-excerpt')]/text()").get() or "no info")()
         }
-#         //section[contains(@class, 'postbox-information')]/div[contains(@class, 'postbox-sec')]/div/div/div/div[contains(@class, 'links-main')]/div/div/div/span[contains(@class, 'download-number')]/text()
+        # Extract movie slug (e.g., 'fall' from 'https://filmazon.my/movie/fall')
+        slug = response.url.split('/')[-1]
+
+        # Construct API URL to fetch download counts
+        api_url = f"https://filmazon.my/movie/{slug}/links"
+
+        # Send request to API, pass movie_data using meta
+        yield scrapy.Request(url=api_url,method="POST", callback=self.parse_download_count, meta={'movie_data': movie_data})
+
+    def parse_download_count(self, response):
+        """Parses the API response and adds the download count to movie data."""
+        movie_data = response.meta['movie_data']
+
+        # Extract download counts from the API response
+        download_counts = response.xpath('//span[contains(@class, "download-number")]/text()').getall() or "no info"
+
+        total_downloads = sum(map(int, download_counts))
+
+        # Update movie data with download counts
+        movie_data['download_counts'] = total_downloads
+
+        # Yield final movie data
+        yield movie_data
+
+    # def dl(self,response):
+    #     links = response.xpath('//span[contains(@class, "download-number")]/text()').getall()
+    #     print("Extracted Links:", links)
+
 
 

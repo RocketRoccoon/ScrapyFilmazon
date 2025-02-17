@@ -7,8 +7,8 @@ class ScrapyfilmazoncrawlerSpider(scrapy.Spider):
     # allowed_domains = ["filmazon.my"]
     start_urls = ["https://filmazon.my/movie?sort=created_at_asc"]
     custom_settings = {
-        # 'LOG_FILE': 'Filmazon1.log',
-        # 'LOG_MODE': 'w',
+        'LOG_FILE': 'Filmazon12.log',
+        'LOG_MODE': 'w',
         'CONCURRENT_REQUESTS': 64,
     }
 
@@ -19,13 +19,13 @@ class ScrapyfilmazoncrawlerSpider(scrapy.Spider):
             link = item.xpath("./div/div/h2/a/@href").get()
             yield scrapy.Request(url=link, callback=self.parse_item)
 
-        for i in range(2, 3):
+        for i in range(2, 2317):
             next_page = f'https://filmazon.my/movie?sort=created_at_asc&page={i}'
             yield scrapy.Request(url=next_page, callback=self.parse)
 
     def parse_item(self, response):
         movie_data= {
-            'name': response.url.split('/')[-1],
+            'name': (lambda text: (m.group(1) if (m := re.search(r"دانلود فیلم (.+?) \d{4}", text)) else "No info"))(response.xpath("//h1[contains(@class, 'title')]/text()").get() or ""),
             'genre': (lambda genres: ", ".join(genres) if genres else "No info")(response.xpath('//i[contains(@class, "fa-light fa-masks-theater")]/../following-sibling::div/a/text()').getall()),
             'release_year': (lambda : response.xpath('//i[contains(@class, "fa-light fa-calendar-day")]/../following-sibling::div/a/text()').get() or "no info")(),
             'duration': (lambda : re.findall(r'\d+', response.xpath('//i[contains(@class, "fa-light fa-alarm-clock")]/../following-sibling::div/a/text()').get())[0] if response.xpath('//i[contains(@class, "fa-light fa-alarm-clock")]/../following-sibling::div/a/text()').get() else "no info")(),
